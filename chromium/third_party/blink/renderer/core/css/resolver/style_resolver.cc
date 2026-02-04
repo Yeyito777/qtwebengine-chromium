@@ -32,6 +32,9 @@
 
 #include <optional>
 
+// Element shader includes
+#include "third_party/blink/renderer/platform/graphics/color.h"
+
 #include "base/containers/adapters.h"
 #include "base/memory/stack_allocated.h"
 #include "base/types/optional_util.h"
@@ -136,6 +139,24 @@
 namespace blink {
 
 namespace {
+
+// =============================================================================
+// ELEMENT SHADER - Transforms computed styles before rendering
+// =============================================================================
+void ApplyElementShader(StyleResolverState& state) {
+  ComputedStyleBuilder& builder = state.StyleBuilder();
+
+  // Target colors (hardcoded for now)
+  const Color kTargetBackground(0x00, 0x05, 0x0f);  // #00050f
+  const Color kTargetText(0xff, 0xff, 0xff);        // #ffffff
+
+  // Force background color to target
+  builder.SetBackgroundColor(StyleColor(kTargetBackground));
+
+  // Force text color to target
+  builder.SetColor(StyleColor(kTargetText));
+}
+// =============================================================================
 
 bool IsPseudoElementWithUAStyle(PseudoId pseudo_id) {
   switch (pseudo_id) {
@@ -1362,6 +1383,9 @@ const ComputedStyle* StyleResolver::ResolveStyle(
   }
 
   state.LoadPendingResources();
+
+  // Apply element shader (transforms colors before rendering)
+  ApplyElementShader(state);
 
   // Now return the style.
   return state.TakeStyle();

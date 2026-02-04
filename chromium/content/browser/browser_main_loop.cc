@@ -512,6 +512,8 @@ BrowserMainLoop::~BrowserMainLoop() {
 void BrowserMainLoop::Init() {
   TRACE_EVENT0("startup", "BrowserMainLoop::Init");
 
+  LOG(INFO) << "[YEYITO-CUSTOM-QTWEBENGINE] Custom QtWebEngine fork loaded successfully";
+
   if (parameters_.startup_data) {
     StartupDataImpl* startup_data =
         static_cast<StartupDataImpl*>(parameters_.startup_data.get());
