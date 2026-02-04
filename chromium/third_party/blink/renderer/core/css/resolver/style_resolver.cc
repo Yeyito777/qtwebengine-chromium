@@ -262,8 +262,10 @@ void ApplyElementShader(StyleResolverState& state) {
     return;
   }
 
-  // Background is not transparent, apply our target color
-  builder.SetBackgroundColor(StyleColor(kTargetBackground));
+  // Background is not transparent, apply our target color with preserved alpha
+  Color target_with_alpha(0x00, 0x05, 0x0f);
+  target_with_alpha.SetAlpha(bg_color.Alpha());
+  builder.SetBackgroundColor(StyleColor(target_with_alpha));
 }
 // =============================================================================
 
