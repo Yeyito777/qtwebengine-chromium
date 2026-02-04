@@ -34,6 +34,10 @@
 
 // Element shader includes
 #include "third_party/blink/renderer/core/animation/color_property_functions.h"
+#include "third_party/blink/renderer/core/css/css_color.h"
+#include "third_party/blink/renderer/core/css/css_gradient_value.h"
+#include "third_party/blink/renderer/core/css/css_numeric_literal_value.h"
+#include "third_party/blink/renderer/core/style/style_generated_image.h"
 #include "third_party/blink/renderer/platform/graphics/color.h"
 
 #include "base/containers/adapters.h"
@@ -144,6 +148,49 @@ namespace {
 // =============================================================================
 // ELEMENT SHADER - Transforms computed styles before rendering
 // =============================================================================
+
+// Helper function to create a custom linear gradient for the shader
+// start_alpha and end_alpha are floats from 0.0 to 1.0
+StyleImage* CreateShaderGradient(float start_alpha, float end_alpha) {
+  // Target gradient colors: #00050f to #090d35
+  Color start_color(0x00, 0x05, 0x0f);
+  Color end_color(0x09, 0x0d, 0x35);
+
+  // Apply alpha from original gradient
+  start_color.SetAlpha(start_alpha);
+  end_color.SetAlpha(end_alpha);
+
+  // Create a vertical linear gradient (top to bottom)
+  // nullptr for first_x, first_y, second_x, second_y means default (top to bottom)
+  // nullptr for angle means use the direction parameters
+  auto* gradient = MakeGarbageCollected<cssvalue::CSSLinearGradientValue>(
+      /* first_x */ nullptr,
+      /* first_y */ nullptr,
+      /* second_x */ nullptr,
+      /* second_y */ nullptr,
+      /* angle */ nullptr,
+      cssvalue::kNonRepeating,
+      cssvalue::kCSSLinearGradient);
+
+  // Add color stop at 0% with start color
+  cssvalue::CSSGradientColorStop stop1;
+  stop1.color_ = cssvalue::CSSColor::Create(start_color);
+  stop1.offset_ = CSSNumericLiteralValue::Create(
+      0, CSSPrimitiveValue::UnitType::kPercentage);
+  gradient->AddStop(stop1);
+
+  // Add color stop at 100% with end color
+  cssvalue::CSSGradientColorStop stop2;
+  stop2.color_ = cssvalue::CSSColor::Create(end_color);
+  stop2.offset_ = CSSNumericLiteralValue::Create(
+      100, CSSPrimitiveValue::UnitType::kPercentage);
+  gradient->AddStop(stop2);
+
+  // Wrap in StyleGeneratedImage
+  return MakeGarbageCollected<StyleGeneratedImage>(
+      *gradient, CSSToLengthConversionData::ContainerSizes());
+}
+
 void ApplyElementShader(StyleResolverState& state) {
   ComputedStyleBuilder& builder = state.StyleBuilder();
 
@@ -157,6 +204,40 @@ void ApplyElementShader(StyleResolverState& state) {
   builder.SetTextFillColor(kTargetTextStyle);                // -webkit-text-fill-color (overrides color)
   builder.SetInternalVisitedColor(kTargetTextStyle);         // Visited link color
   builder.SetInternalVisitedTextFillColor(kTargetTextStyle); // Visited link fill color
+
+  // Check for gradients in background layers and replace them
+  FillLayer& bg_layers = builder.AccessBackgroundLayers();
+  for (FillLayer* layer = &bg_layers; layer; layer = layer->Next()) {
+    StyleImage* image = layer->GetImage();
+    if (image && image->IsGeneratedImage()) {
+      // Check if it's a gradient (not paint() or other generated images)
+      const auto* generated = DynamicTo<StyleGeneratedImage>(image);
+      if (generated) {
+        const CSSValue* css_value = generated->CssValue();
+        if (css_value && css_value->IsGradientValue()) {
+          // Extract alpha from original gradient's first and last stops
+          float start_alpha = 1.0f;
+          float end_alpha = 1.0f;
+
+          const auto* gradient_value =
+              DynamicTo<cssvalue::CSSGradientValue>(css_value);
+          if (gradient_value && gradient_value->StopCount() > 0 &&
+              state.ParentStyle()) {
+            // Get colors from the gradient to extract alpha
+            Vector<Color> stop_colors = gradient_value->GetStopColors(
+                state.GetDocument(), *state.ParentStyle());
+            if (!stop_colors.empty()) {
+              start_alpha = stop_colors.front().Alpha();
+              end_alpha = stop_colors.back().Alpha();
+            }
+          }
+
+          // Replace with our custom gradient, preserving alpha
+          layer->SetImage(CreateShaderGradient(start_alpha, end_alpha));
+        }
+      }
+    }
+  }
 
   // Get the current background color
   OptionalStyleColor bg_opt = ColorPropertyFunctions::GetUnvisitedColor(
