@@ -33,6 +33,7 @@
 #include <optional>
 
 // Element shader includes
+#include "third_party/blink/renderer/core/animation/color_property_functions.h"
 #include "third_party/blink/renderer/platform/graphics/color.h"
 
 #include "base/containers/adapters.h"
@@ -146,15 +147,42 @@ namespace {
 void ApplyElementShader(StyleResolverState& state) {
   ComputedStyleBuilder& builder = state.StyleBuilder();
 
-  // Target colors (hardcoded for now)
+  // Target colors
   const Color kTargetBackground(0x00, 0x05, 0x0f);  // #00050f
   const Color kTargetText(0xff, 0xff, 0xff);        // #ffffff
+  const StyleColor kTargetTextStyle(kTargetText);
 
-  // Force background color to target
+  // Set all text-related colors to white
+  builder.SetColor(kTargetTextStyle);                        // Main text color
+  builder.SetTextFillColor(kTargetTextStyle);                // -webkit-text-fill-color (overrides color)
+  builder.SetInternalVisitedColor(kTargetTextStyle);         // Visited link color
+  builder.SetInternalVisitedTextFillColor(kTargetTextStyle); // Visited link fill color
+
+  // Get the current background color
+  OptionalStyleColor bg_opt = ColorPropertyFunctions::GetUnvisitedColor(
+      GetCSSPropertyBackgroundColor(), builder);
+
+  if (!bg_opt.has_value()) {
+    return;  // No background color property
+  }
+
+  const StyleColor& bg_style_color = bg_opt.value();
+
+  // If it's currentcolor, skip background modification
+  if (bg_style_color.IsCurrentColor()) {
+    return;
+  }
+
+  // Get the actual color value
+  Color bg_color = bg_style_color.GetColor();
+
+  // Skip background modification if fully transparent
+  if (bg_color.IsFullyTransparent()) {
+    return;
+  }
+
+  // Background is not transparent, apply our target color
   builder.SetBackgroundColor(StyleColor(kTargetBackground));
-
-  // Force text color to target
-  builder.SetColor(StyleColor(kTargetText));
 }
 // =============================================================================
 
