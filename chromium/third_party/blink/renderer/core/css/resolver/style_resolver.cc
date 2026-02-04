@@ -197,6 +197,7 @@ void ApplyElementShader(StyleResolverState& state) {
   // Target colors
   const Color kTargetBackground(0x00, 0x05, 0x0f);  // #00050f
   const Color kTargetText(0xff, 0xff, 0xff);        // #ffffff
+  const Color kTargetBorder(0x1d, 0x9b, 0xf0);      // #1d9bf0
   const StyleColor kTargetTextStyle(kTargetText);
 
   // Set all text-related colors to white
@@ -204,6 +205,43 @@ void ApplyElementShader(StyleResolverState& state) {
   builder.SetTextFillColor(kTargetTextStyle);                // -webkit-text-fill-color (overrides color)
   builder.SetInternalVisitedColor(kTargetTextStyle);         // Visited link color
   builder.SetInternalVisitedTextFillColor(kTargetTextStyle); // Visited link fill color
+
+  // Recolor borders to target color while preserving alpha
+  // Helper lambda to recolor a border side
+  auto RecolorBorder = [&builder, &kTargetBorder](const CSSProperty& property,
+                                                   void (ComputedStyleBuilder::*setter)(const StyleColor&),
+                                                   int border_width) {
+    if (border_width <= 0) {
+      return;  // No border on this side
+    }
+
+    OptionalStyleColor border_opt = ColorPropertyFunctions::GetUnvisitedColor(property, builder);
+    if (!border_opt.has_value()) {
+      return;
+    }
+
+    const StyleColor& border_style_color = border_opt.value();
+    if (border_style_color.IsCurrentColor()) {
+      // If border is currentColor, use target border color with full alpha
+      (builder.*setter)(StyleColor(kTargetBorder));
+      return;
+    }
+
+    Color border_color = border_style_color.GetColor();
+    if (border_color.IsFullyTransparent()) {
+      return;  // Skip fully transparent borders
+    }
+
+    // Apply target border color with original alpha
+    Color new_border_color(0x1d, 0x9b, 0xf0);
+    new_border_color.SetAlpha(border_color.Alpha());
+    (builder.*setter)(StyleColor(new_border_color));
+  };
+
+  RecolorBorder(GetCSSPropertyBorderTopColor(), &ComputedStyleBuilder::SetBorderTopColor, builder.BorderTopWidth());
+  RecolorBorder(GetCSSPropertyBorderRightColor(), &ComputedStyleBuilder::SetBorderRightColor, builder.BorderRightWidth());
+  RecolorBorder(GetCSSPropertyBorderBottomColor(), &ComputedStyleBuilder::SetBorderBottomColor, builder.BorderBottomWidth());
+  RecolorBorder(GetCSSPropertyBorderLeftColor(), &ComputedStyleBuilder::SetBorderLeftColor, builder.BorderLeftWidth());
 
   // Check for gradients in background layers and replace them
   FillLayer& bg_layers = builder.AccessBackgroundLayers();
