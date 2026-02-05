@@ -200,15 +200,18 @@ void ApplyElementShader(StyleResolverState& state) {
   const Color kTargetBorder(0x1d, 0x9b, 0xf0);      // #1d9bf0
   const StyleColor kTargetTextStyle(kTargetText);
 
+  // Options
+  const bool kPreserveBorderAlpha = false;  // Preserve original border alpha
+
   // Set all text-related colors to white
   builder.SetColor(kTargetTextStyle);                        // Main text color
   builder.SetTextFillColor(kTargetTextStyle);                // -webkit-text-fill-color (overrides color)
   builder.SetInternalVisitedColor(kTargetTextStyle);         // Visited link color
   builder.SetInternalVisitedTextFillColor(kTargetTextStyle); // Visited link fill color
 
-  // Recolor borders to target color while preserving alpha
+  // Recolor borders to target color (optionally preserving alpha)
   // Helper lambda to recolor a border side
-  auto RecolorBorder = [&builder, &kTargetBorder](const CSSProperty& property,
+  auto RecolorBorder = [&builder, &kTargetBorder, kPreserveBorderAlpha](const CSSProperty& property,
                                                    void (ComputedStyleBuilder::*setter)(const StyleColor&),
                                                    int border_width) {
     if (border_width <= 0) {
@@ -232,10 +235,14 @@ void ApplyElementShader(StyleResolverState& state) {
       return;  // Skip fully transparent borders
     }
 
-    // Apply target border color with original alpha
-    Color new_border_color(0x1d, 0x9b, 0xf0);
-    new_border_color.SetAlpha(border_color.Alpha());
-    (builder.*setter)(StyleColor(new_border_color));
+    // Apply target border color (optionally preserving original alpha)
+    if (kPreserveBorderAlpha) {
+      Color new_border_color(0x1d, 0x9b, 0xf0);
+      new_border_color.SetAlpha(border_color.Alpha());
+      (builder.*setter)(StyleColor(new_border_color));
+    } else {
+      (builder.*setter)(StyleColor(kTargetBorder));
+    }
   };
 
   RecolorBorder(GetCSSPropertyBorderTopColor(), &ComputedStyleBuilder::SetBorderTopColor, builder.BorderTopWidth());
