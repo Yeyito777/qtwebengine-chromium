@@ -38,6 +38,7 @@
 #include "third_party/blink/renderer/core/css/css_gradient_value.h"
 #include "third_party/blink/renderer/core/css/css_numeric_literal_value.h"
 #include "third_party/blink/renderer/core/style/style_generated_image.h"
+#include "third_party/blink/renderer/platform/geometry/length_size.h"
 #include "third_party/blink/renderer/platform/graphics/color.h"
 
 #include "base/containers/adapters.h"
@@ -249,6 +250,13 @@ void ApplyElementShader(StyleResolverState& state) {
   RecolorBorder(GetCSSPropertyBorderRightColor(), &ComputedStyleBuilder::SetBorderRightColor, builder.BorderRightWidth());
   RecolorBorder(GetCSSPropertyBorderBottomColor(), &ComputedStyleBuilder::SetBorderBottomColor, builder.BorderBottomWidth());
   RecolorBorder(GetCSSPropertyBorderLeftColor(), &ComputedStyleBuilder::SetBorderLeftColor, builder.BorderLeftWidth());
+
+  // Remove border radius from all elements
+  const LengthSize kZeroRadius(Length::Fixed(0), Length::Fixed(0));
+  builder.SetBorderTopLeftRadius(kZeroRadius);
+  builder.SetBorderTopRightRadius(kZeroRadius);
+  builder.SetBorderBottomLeftRadius(kZeroRadius);
+  builder.SetBorderBottomRightRadius(kZeroRadius);
 
   // Check for gradients in background layers and replace them
   FillLayer& bg_layers = builder.AccessBackgroundLayers();
