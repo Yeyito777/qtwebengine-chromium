@@ -352,10 +352,27 @@ void ApplyElementShader(StyleResolverState& state) {
     return;
   }
 
-  // Background is not transparent, apply our target color with preserved alpha
-  Color target_with_alpha(0x00, 0x05, 0x0f);
-  target_with_alpha.SetAlpha(bg_color.Alpha());
-  builder.SetBackgroundColor(StyleColor(target_with_alpha));
+  // Background: preserve chromatic colors (darken), make grays #00050f
+  int bg_r = bg_color.Red(), bg_g = bg_color.Green(), bg_b = bg_color.Blue();
+  int bg_chroma = std::max({bg_r, bg_g, bg_b}) - std::min({bg_r, bg_g, bg_b});
+  if (bg_chroma > 25) {
+    // Chromatic background — darken while preserving hue and alpha
+    double h, s, l;
+    bg_color.GetHSL(h, s, l);
+    l = std::min(l, 0.15);  // Dark so it stays close to #00050f level
+    s = std::max(s, 0.50);  // Keep it recognizably colored
+    Color darkened = Color::FromHSLA(
+        static_cast<float>(h) * 360.0f,
+        static_cast<float>(s),
+        static_cast<float>(l),
+        bg_color.Alpha());
+    builder.SetBackgroundColor(StyleColor(darkened));
+  } else {
+    // Non-chromatic — use target dark background, preserve alpha
+    Color target_with_alpha(0x00, 0x05, 0x0f);
+    target_with_alpha.SetAlpha(bg_color.Alpha());
+    builder.SetBackgroundColor(StyleColor(target_with_alpha));
+  }
 }
 // =============================================================================
 
