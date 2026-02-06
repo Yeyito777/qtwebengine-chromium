@@ -213,11 +213,39 @@ void ApplyElementShader(StyleResolverState& state) {
   // Options
   const bool kPreserveBorderAlpha = false;  // Preserve original border alpha
 
-  // Set all text-related colors to white
-  builder.SetColor(kTargetTextStyle);                        // Main text color
-  builder.SetTextFillColor(kTargetTextStyle);                // -webkit-text-fill-color (overrides color)
-  builder.SetInternalVisitedColor(kTargetTextStyle);         // Visited link color
-  builder.SetInternalVisitedTextFillColor(kTargetTextStyle); // Visited link fill color
+  // Text color: preserve chromatic colors (boost brightness), make grays white
+  bool used_chromatic = false;
+  OptionalStyleColor text_opt = ColorPropertyFunctions::GetUnvisitedColor(
+      GetCSSPropertyColor(), builder);
+  if (text_opt.has_value() && !text_opt.value().IsCurrentColor()) {
+    Color orig = text_opt.value().GetColor();
+    int r = orig.Red(), g = orig.Green(), b = orig.Blue();
+    int chroma = std::max({r, g, b}) - std::min({r, g, b});
+    if (chroma > 25) {
+      // Chromatic color — boost brightness while preserving hue
+      double h, s, l;
+      orig.GetHSL(h, s, l);
+      l = std::max(l, 0.80);  // High brightness so it pops on dark bg
+      s = std::max(s, 0.70);  // Keep it vivid, not washed out
+      Color boosted = Color::FromHSLA(
+          static_cast<float>(h) * 360.0f,  // GetHSL returns 0-1, FromHSLA wants degrees
+          static_cast<float>(s),            // 0-1 range
+          static_cast<float>(l),            // 0-1 range
+          orig.Alpha());
+      StyleColor boosted_style(boosted);
+      builder.SetColor(boosted_style);
+      builder.SetTextFillColor(boosted_style);
+      builder.SetInternalVisitedColor(boosted_style);
+      builder.SetInternalVisitedTextFillColor(boosted_style);
+      used_chromatic = true;
+    }
+  }
+  if (!used_chromatic) {
+    builder.SetColor(kTargetTextStyle);                        // Main text color
+    builder.SetTextFillColor(kTargetTextStyle);                // -webkit-text-fill-color (overrides color)
+    builder.SetInternalVisitedColor(kTargetTextStyle);         // Visited link color
+    builder.SetInternalVisitedTextFillColor(kTargetTextStyle); // Visited link fill color
+  }
 
   // Recolor borders to target color (optionally preserving alpha)
   // Helper lambda to recolor a border side
