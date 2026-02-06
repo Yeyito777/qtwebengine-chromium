@@ -119,6 +119,7 @@
 #include "third_party/blink/renderer/core/html/track/vtt/vtt_element.h"
 #include "third_party/blink/renderer/core/html_names.h"
 #include "third_party/blink/renderer/core/inspector/identifiers_factory.h"
+#include "third_party/blink/renderer/core/layout/layout_box.h"
 #include "third_party/blink/renderer/core/layout/layout_view.h"
 #include "third_party/blink/renderer/core/mathml/mathml_fraction_element.h"
 #include "third_party/blink/renderer/core/mathml/mathml_operator_element.h"
@@ -353,9 +354,30 @@ void ApplyElementShader(StyleResolverState& state) {
   }
 
   // Background: preserve chromatic colors (darken), make grays #00050f
+  // Large elements (html, body, or big layout area) always get #00050f
+  const float kMaxChromaticBgArea = 200000.0f;  // ~450x450 px
+  bool force_dark = false;
+
+  Element& element = state.GetElement();
+  if (IsA<HTMLHtmlElement>(element) || IsA<HTMLBodyElement>(element)) {
+    force_dark = true;
+  }
+
+  if (!force_dark) {
+    LayoutObject* layout_obj = element.GetLayoutObject();
+    if (layout_obj && layout_obj->IsBox()) {
+      auto* layout_box = To<LayoutBox>(layout_obj);
+      float w = layout_box->OffsetWidth().ToFloat();
+      float h = layout_box->OffsetHeight().ToFloat();
+      if (w * h > kMaxChromaticBgArea) {
+        force_dark = true;
+      }
+    }
+  }
+
   int bg_r = bg_color.Red(), bg_g = bg_color.Green(), bg_b = bg_color.Blue();
   int bg_chroma = std::max({bg_r, bg_g, bg_b}) - std::min({bg_r, bg_g, bg_b});
-  if (bg_chroma > 25) {
+  if (!force_dark && bg_chroma > 25) {
     // Chromatic background — darken while preserving hue and alpha
     double h, s, l;
     bg_color.GetHSL(h, s, l);
@@ -368,7 +390,7 @@ void ApplyElementShader(StyleResolverState& state) {
         bg_color.Alpha());
     builder.SetBackgroundColor(StyleColor(darkened));
   } else {
-    // Non-chromatic — use target dark background, preserve alpha
+    // Non-chromatic or large element — use target dark background, preserve alpha
     Color target_with_alpha(0x00, 0x05, 0x0f);
     target_with_alpha.SetAlpha(bg_color.Alpha());
     builder.SetBackgroundColor(StyleColor(target_with_alpha));
