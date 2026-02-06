@@ -225,7 +225,7 @@ void ApplyElementShader(StyleResolverState& state) {
       // Chromatic color — boost brightness while preserving hue
       double h, s, l;
       orig.GetHSL(h, s, l);
-      l = std::max(l, 0.80);  // High brightness so it pops on dark bg
+      l = std::max(l, 0.70);  // High brightness so it pops on dark bg
       s = std::max(s, 0.70);  // Keep it vivid, not washed out
       Color boosted = Color::FromHSLA(
           static_cast<float>(h) * 360.0f,  // GetHSL returns 0-1, FromHSLA wants degrees
