@@ -205,6 +205,12 @@ void ApplyElementShader(StyleResolverState& state) {
 
   ComputedStyleBuilder& builder = state.StyleBuilder();
 
+  // Handle ::selection pseudo-element — custom highlight color
+  if (builder.StyleType() == kPseudoIdSelection) {
+    builder.SetBackgroundColor(StyleColor(Color(0x4f, 0x52, 0x58)));  // #4f5258
+    return;
+  }
+
   // Target colors
   const Color kTargetBackground(0x00, 0x05, 0x0f);  // #00050f
   const Color kTargetText(0xff, 0xff, 0xff);        // #ffffff
