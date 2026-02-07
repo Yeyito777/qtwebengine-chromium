@@ -354,12 +354,8 @@ void ApplyElementShader(StyleResolverState& state) {
   // Get the actual color value
   Color bg_color = bg_style_color.GetColor();
 
-  // Skip background modification if fully transparent
-  if (bg_color.IsFullyTransparent()) {
-    return;
-  }
-
   // Background: preserve chromatic colors (darken), make grays #00050f
+  // Alpha is always preserved, so transparent elements stay transparent.
   // Large elements (html, body, or big layout area) always get #00050f
   const float kMaxChromaticBgArea = 200000.0f;  // ~450x450 px
   bool force_dark = false;
