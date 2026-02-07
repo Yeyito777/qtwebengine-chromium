@@ -37,6 +37,8 @@
 #include "third_party/blink/renderer/core/css/css_color.h"
 #include "third_party/blink/renderer/core/css/css_gradient_value.h"
 #include "third_party/blink/renderer/core/css/css_numeric_literal_value.h"
+#include "third_party/blink/renderer/core/style/shadow_data.h"
+#include "third_party/blink/renderer/core/style/shadow_list.h"
 #include "third_party/blink/renderer/core/style/style_generated_image.h"
 #include "third_party/blink/renderer/platform/geometry/length_size.h"
 #include "third_party/blink/renderer/platform/graphics/color.h"
@@ -334,6 +336,30 @@ void ApplyElementShader(StyleResolverState& state) {
         }
       }
     }
+  }
+
+  // Recolor box-shadow: replace shadow colors with #090d35, preserving alpha
+  const ShadowList* current_shadows = builder.BoxShadow();
+  if (current_shadows) {
+    const Color kShadowColor(0x09, 0x0d, 0x35);
+    const auto& shadows = current_shadows->Shadows();
+    ShadowDataVector new_shadows;
+    for (const ShadowData& shadow : shadows) {
+      // Preserve alpha from original shadow color
+      float alpha = 1.0f;
+      StyleColor orig_style_color = shadow.GetColor();
+      if (!orig_style_color.IsCurrentColor()) {
+        alpha = orig_style_color.GetColor().Alpha();
+      }
+      Color recolored(0x09, 0x0d, 0x35);
+      recolored.SetAlpha(alpha);
+
+      new_shadows.push_back(ShadowData(
+          shadow.Offset(), shadow.Blur(), shadow.Spread(),
+          shadow.Style(), StyleColor(recolored), shadow.Opacity()));
+    }
+    builder.SetBoxShadow(
+        MakeGarbageCollected<ShadowList>(std::move(new_shadows)));
   }
 
   // Get the current background color
