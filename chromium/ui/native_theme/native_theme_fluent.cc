@@ -48,8 +48,11 @@ void NativeThemeFluent::PaintArrowButton(
     ColorScheme color_scheme,
     bool in_forced_colors,
     const ScrollbarArrowExtraParams& extra_params) const {
-  PaintButton(canvas, color_provider, rect, direction, color_scheme,
-              in_forced_colors, extra_params);
+  // Paint button background with shader color
+  cc::PaintFlags flags;
+  flags.setColor(SkColorSetRGB(0x00, 0x05, 0x0f));
+  canvas->drawIRect(gfx::RectToSkIRect(rect), flags);
+  // Paint arrow with shader accent color
   PaintArrow(canvas, color_provider, rect, direction, state, color_scheme,
              extra_params);
 }
@@ -63,41 +66,9 @@ void NativeThemeFluent::PaintScrollbarTrack(
     const gfx::Rect& rect,
     ColorScheme color_scheme,
     bool in_forced_colors) const {
-  gfx::Rect track_fill_rect = rect;
-  if (in_forced_colors) {
-    gfx::Insets edge_insets;
-    if (part == NativeTheme::Part::kScrollbarHorizontalTrack) {
-      edge_insets.set_left_right(-kFluentScrollbarTrackOutlineWidth,
-                                 -kFluentScrollbarTrackOutlineWidth);
-    } else {
-      edge_insets.set_top_bottom(-kFluentScrollbarTrackOutlineWidth,
-                                 -kFluentScrollbarTrackOutlineWidth);
-    }
-    const gfx::InsetsF outline_insets(kFluentScrollbarTrackOutlineWidth / 2.0f);
-
-    gfx::RectF outline_rect(rect);
-    outline_rect.Inset(outline_insets + gfx::InsetsF(edge_insets));
-
-    const SkColor track_outline_color =
-        color_provider->GetColor(kColorWebNativeControlScrollbarThumb);
-
-    cc::PaintFlags outline_flags;
-    outline_flags.setColor(track_outline_color);
-    outline_flags.setStyle(cc::PaintFlags::kStroke_Style);
-    outline_flags.setStrokeWidth(kFluentScrollbarTrackOutlineWidth);
-    canvas->drawRect(gfx::RectFToSkRect(outline_rect), outline_flags);
-
-    // Adjust fill rect to not overlap with the outline stroke rect.
-    constexpr gfx::Insets fill_insets(kFluentScrollbarTrackOutlineWidth);
-    track_fill_rect.Inset(fill_insets + edge_insets);
-  }
-  const SkColor track_color =
-      extra_params.track_color.has_value()
-          ? extra_params.track_color.value()
-          : color_provider->GetColor(kColorWebNativeControlScrollbarTrack);
   cc::PaintFlags flags;
-  flags.setColor(track_color);
-  canvas->drawIRect(gfx::RectToSkIRect(track_fill_rect), flags);
+  flags.setColor(SkColorSetRGB(0x00, 0x05, 0x0f));
+  canvas->drawIRect(gfx::RectToSkIRect(rect), flags);
 }
 
 void NativeThemeFluent::PaintScrollbarThumb(
@@ -110,20 +81,22 @@ void NativeThemeFluent::PaintScrollbarThumb(
     ColorScheme color_scheme) const {
   DCHECK_NE(state, NativeTheme::kDisabled);
 
-  cc::PaintFlags flags;
-  flags.setAntiAlias(true);
-  flags.setColor(GetScrollbarThumbColor(*color_provider, state, extra_params));
-  const SkRect sk_rect = gfx::RectToSkRect(rect);
-  if (extra_params.is_web_test) {
-    // Web tests draw the thumb as a square to avoid issues that come with the
-    // differences in calculation of anti-aliasing and rounding in different
-    // platforms.
-    canvas->drawRect(sk_rect, flags);
-  } else {
-    canvas->drawRRect(SkRRect::MakeRectXY(sk_rect, kFluentScrollbarPartsRadius,
-                                          kFluentScrollbarPartsRadius),
-                      flags);
-  }
+  constexpr SkColor kShaderBg = SkColorSetRGB(0x00, 0x05, 0x0f);
+  constexpr SkColor kShaderBorder = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+
+  // Fill with background
+  cc::PaintFlags fill_flags;
+  fill_flags.setColor(kShaderBg);
+  canvas->drawRect(gfx::RectToSkRect(rect), fill_flags);
+
+  // Draw 1px border
+  cc::PaintFlags stroke_flags;
+  stroke_flags.setColor(kShaderBorder);
+  stroke_flags.setStyle(cc::PaintFlags::kStroke_Style);
+  stroke_flags.setStrokeWidth(1);
+  gfx::RectF border_rect(rect);
+  border_rect.Inset(0.5f);
+  canvas->drawRect(gfx::RectFToSkRect(border_rect), stroke_flags);
 }
 
 gfx::Insets NativeThemeFluent::GetScrollbarSolidColorThumbInsets(
@@ -165,11 +138,7 @@ void NativeThemeFluent::PaintScrollbarCorner(
     const ScrollbarTrackExtraParams& extra_params,
     ColorScheme color_scheme) const {
   cc::PaintFlags flags;
-  const SkColor corner_color =
-      extra_params.track_color.has_value()
-          ? extra_params.track_color.value()
-          : color_provider->GetColor(kColorWebNativeControlScrollbarCorner);
-  flags.setColor(corner_color);
+  flags.setColor(SkColorSetRGB(0x00, 0x05, 0x0f));
   canvas->drawIRect(RectToSkIRect(rect), flags);
 }
 
@@ -264,19 +233,8 @@ void NativeThemeFluent::PaintArrow(
     State state,
     ColorScheme color_scheme,
     const ScrollbarArrowExtraParams& extra_params) const {
-  const ColorId arrow_color_id =
-      state == NativeTheme::kPressed || state == NativeTheme::kHovered
-          ? kColorWebNativeControlScrollbarArrowForegroundPressed
-          : kColorWebNativeControlScrollbarArrowForeground;
-  const SkColor arrow_color =
-      GetContrastingPressedOrHoveredColor(
-          extra_params.thumb_color,
-          extra_params.track_color.value_or(
-              color_provider->GetColor(kColorWebNativeControlScrollbarTrack)),
-          state, part)
-          .value_or(color_provider->GetColor(arrow_color_id));
   cc::PaintFlags flags;
-  flags.setColor(arrow_color);
+  flags.setColor(SkColorSetRGB(0x1d, 0x9b, 0xf0));
 
   if (!typeface_.has_value()) {
     const sk_sp<SkFontMgr> font_manager(skia::DefaultFontMgr());
