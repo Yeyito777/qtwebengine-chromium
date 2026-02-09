@@ -752,6 +752,10 @@ void WebSettingsImpl::SetForceDarkModeEnabled(bool enabled) {
   settings_->SetForceDarkModeEnabled(enabled);
 }
 
+void WebSettingsImpl::SetElementShaderEnabled(bool enabled) {
+  settings_->SetElementShaderEnabled(enabled);
+}
+
 void WebSettingsImpl::SetInForcedColors(bool in_forced_colors) {
   settings_->SetInForcedColors(in_forced_colors);
 }

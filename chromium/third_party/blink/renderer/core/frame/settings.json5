@@ -985,6 +985,15 @@
       invalidate: ["ColorScheme", "Style", "Paint"],
     },
 
+    //
+    // Element shader
+    //
+    {
+      name: "elementShaderEnabled",
+      initial: true,
+      invalidate: ["Style", "Paint"],
+    },
+
     {
       name: "navigatorPlatformOverride",
       type: "String",

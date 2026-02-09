@@ -270,6 +270,7 @@ class WebSettings {
   virtual void SetLazyLoadingImageMarginPx3G(int) = 0;
   virtual void SetLazyLoadingImageMarginPx4G(int) = 0;
   virtual void SetForceDarkModeEnabled(bool) = 0;
+  virtual void SetElementShaderEnabled(bool) = 0;
   virtual void SetInForcedColors(bool) = 0;
   virtual void SetIsForcedColorsDisabled(bool) = 0;
   virtual void SetPreferredRootScrollbarColorScheme(

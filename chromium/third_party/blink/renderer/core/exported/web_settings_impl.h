@@ -221,6 +221,7 @@ class CORE_EXPORT WebSettingsImpl final : public WebSettings {
   void SetLazyLoadingImageMarginPx4G(int) override;
 
   void SetForceDarkModeEnabled(bool) override;
+  void SetElementShaderEnabled(bool) override;
   void SetInForcedColors(bool) override;
   void SetIsForcedColorsDisabled(bool) override;
   void SetPreferredRootScrollbarColorScheme(

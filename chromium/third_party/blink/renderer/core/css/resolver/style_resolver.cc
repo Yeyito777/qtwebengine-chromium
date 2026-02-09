@@ -196,13 +196,10 @@ StyleImage* CreateShaderGradient(float start_alpha, float end_alpha) {
 }
 
 void ApplyElementShader(StyleResolverState& state) {
-  // Check if shader is disabled via document element attribute
-  Element* root = state.GetDocument().documentElement();
-  if (root) {
-    DEFINE_STATIC_LOCAL(AtomicString, no_shader_attr, ("data-no-shader"));
-    if (root->hasAttribute(no_shader_attr)) {
-      return;
-    }
+  // Check if shader is disabled via Settings
+  const Settings* settings = state.GetDocument().GetSettings();
+  if (!settings || !settings->GetElementShaderEnabled()) {
+    return;
   }
 
   ComputedStyleBuilder& builder = state.StyleBuilder();

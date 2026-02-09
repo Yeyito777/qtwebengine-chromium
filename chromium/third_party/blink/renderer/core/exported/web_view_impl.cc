@@ -1809,6 +1809,7 @@ void WebView::ApplyWebPreferences(const web_pref::WebPreferences& prefs,
 #endif  // BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_FUCHSIA)
 
   settings->SetForceDarkModeEnabled(prefs.force_dark_mode_enabled);
+  settings->SetElementShaderEnabled(prefs.element_shader_enabled);
 
   settings->SetAccessibilityAlwaysShowFocus(prefs.always_show_focus);
   settings->SetAutoplayPolicy(prefs.autoplay_policy);
