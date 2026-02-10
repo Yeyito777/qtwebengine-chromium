@@ -671,6 +671,67 @@ void NativeThemeBase::PaintCheckbox(
     const ButtonExtraParams& button,
     ColorScheme color_scheme,
     const std::optional<SkColor>& accent_color) const {
+  if (element_shader_enabled()) {
+    constexpr SkColor kShaderBg = SkColorSetRGB(0x00, 0x05, 0x0f);
+    constexpr SkColor kShaderAccent = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+    constexpr SkColor kShaderFg = SK_ColorWHITE;
+    constexpr uint8_t kDisabledAlpha = 0x4D;
+
+    SkRect skrect = gfx::RectToSkRect(rect);
+    if (skrect.width() != skrect.height()) {
+      SkScalar size = std::min(skrect.width(), skrect.height());
+      skrect.inset((skrect.width() - size) / 2,
+                   (skrect.height() - size) / 2);
+    }
+
+    cc::PaintFlags flags;
+    flags.setAntiAlias(true);
+
+    if (button.indeterminate || button.checked) {
+      // Checked/indeterminate: accent fill.
+      flags.setStyle(cc::PaintFlags::kFill_Style);
+      flags.setColor(state == kDisabled
+                         ? SkColorSetA(kShaderAccent, kDisabledAlpha)
+                         : kShaderAccent);
+      canvas->drawRect(skrect, flags);
+
+      if (button.indeterminate) {
+        // Draw the dash.
+        flags.setColor(kShaderFg);
+        SkRect dash = skrect;
+        dash.inset(dash.width() * kIndeterminateInsetWidthRatio,
+                   dash.height() * kIndeterminateInsetHeightRatio);
+        canvas->drawRect(dash, flags);
+      } else {
+        // Draw the checkmark.
+        SkPath check;
+        check.moveTo(skrect.x() + skrect.width() * 0.2, skrect.centerY());
+        check.rLineTo(skrect.width() * 0.2, skrect.height() * 0.2);
+        check.lineTo(skrect.right() - skrect.width() * 0.2,
+                     skrect.y() + skrect.height() * 0.2);
+        flags.setStyle(cc::PaintFlags::kStroke_Style);
+        flags.setStrokeWidth(SkFloatToScalar(skrect.height() * 0.16));
+        flags.setColor(kShaderFg);
+        canvas->drawPath(check, flags);
+      }
+    } else {
+      // Unchecked: dark bg + accent border.
+      flags.setStyle(cc::PaintFlags::kFill_Style);
+      flags.setColor(kShaderBg);
+      canvas->drawRect(skrect, flags);
+
+      flags.setStyle(cc::PaintFlags::kStroke_Style);
+      flags.setStrokeWidth(1.0f);
+      flags.setColor(state == kDisabled
+                         ? SkColorSetA(kShaderAccent, kDisabledAlpha)
+                         : kShaderAccent);
+      SkRect border = skrect;
+      border.inset(0.5f, 0.5f);
+      canvas->drawRect(border, flags);
+    }
+    return;
+  }
+
   const float border_radius =
       GetBorderRadiusForPart(kCheckbox, rect.width(), rect.height());
 
@@ -813,6 +874,56 @@ void NativeThemeBase::PaintRadio(
     const ButtonExtraParams& button,
     ColorScheme color_scheme,
     const std::optional<SkColor>& accent_color) const {
+  if (element_shader_enabled()) {
+    constexpr SkColor kShaderBg = SkColorSetRGB(0x00, 0x05, 0x0f);
+    constexpr SkColor kShaderAccent = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+    constexpr SkColor kShaderFg = SK_ColorWHITE;
+    constexpr uint8_t kDisabledAlpha = 0x4D;
+
+    SkRect skrect = gfx::RectToSkRect(rect);
+    if (skrect.width() != skrect.height()) {
+      SkScalar size = std::min(skrect.width(), skrect.height());
+      skrect.inset((skrect.width() - size) / 2,
+                   (skrect.height() - size) / 2);
+    }
+    float radius = skrect.width() / 2;
+
+    cc::PaintFlags flags;
+    flags.setAntiAlias(true);
+
+    if (button.checked) {
+      // Checked: accent filled circle.
+      flags.setStyle(cc::PaintFlags::kFill_Style);
+      flags.setColor(state == kDisabled
+                         ? SkColorSetA(kShaderAccent, kDisabledAlpha)
+                         : kShaderAccent);
+      canvas->drawRoundRect(skrect, radius, radius, flags);
+
+      // Inner white dot.
+      SkRect inner = skrect;
+      inner.inset(inner.width() * 0.3, inner.height() * 0.3);
+      flags.setColor(kShaderFg);
+      canvas->drawRoundRect(inner, inner.width() / 2, inner.height() / 2,
+                            flags);
+    } else {
+      // Unchecked: dark bg circle + accent border.
+      flags.setStyle(cc::PaintFlags::kFill_Style);
+      flags.setColor(kShaderBg);
+      canvas->drawRoundRect(skrect, radius, radius, flags);
+
+      flags.setStyle(cc::PaintFlags::kStroke_Style);
+      flags.setStrokeWidth(1.0f);
+      flags.setColor(state == kDisabled
+                         ? SkColorSetA(kShaderAccent, kDisabledAlpha)
+                         : kShaderAccent);
+      SkRect border = skrect;
+      border.inset(0.5f, 0.5f);
+      float br = border.width() / 2;
+      canvas->drawRoundRect(border, br, br, flags);
+    }
+    return;
+  }
+
   // Most of a radio button is the same as a checkbox, except the the rounded
   // square is a circle (i.e. border radius >= 100%).
   const float border_radius =
@@ -846,6 +957,34 @@ void NativeThemeBase::PaintButton(cc::PaintCanvas* canvas,
                                   const gfx::Rect& rect,
                                   const ButtonExtraParams& button,
                                   ColorScheme color_scheme) const {
+  if (element_shader_enabled()) {
+    constexpr SkColor kShaderBg = SkColorSetRGB(0x00, 0x05, 0x0f);
+    constexpr SkColor kShaderAccent = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+    constexpr uint8_t kDisabledAlpha = 0x4D;
+
+    SkRect skrect = gfx::RectToSkRect(rect);
+    cc::PaintFlags flags;
+    flags.setAntiAlias(true);
+
+    // Fill.
+    flags.setStyle(cc::PaintFlags::kFill_Style);
+    flags.setColor(kShaderBg);
+    canvas->drawRect(skrect, flags);
+
+    // Border.
+    if (button.has_border) {
+      flags.setStyle(cc::PaintFlags::kStroke_Style);
+      flags.setStrokeWidth(1.0f);
+      flags.setColor(state == kDisabled
+                         ? SkColorSetA(kShaderAccent, kDisabledAlpha)
+                         : kShaderAccent);
+      SkRect border = skrect;
+      border.inset(0.5f, 0.5f);
+      canvas->drawRect(border, flags);
+    }
+    return;
+  }
+
   cc::PaintFlags flags;
   SkRect skrect = gfx::RectToSkRect(rect);
   float border_width = AdjustBorderWidthByZoom(kBorderWidth, button.zoom);
@@ -888,6 +1027,36 @@ void NativeThemeBase::PaintTextField(cc::PaintCanvas* canvas,
                                      const gfx::Rect& rect,
                                      const TextFieldExtraParams& text,
                                      ColorScheme color_scheme) const {
+  if (element_shader_enabled()) {
+    constexpr SkColor kShaderBg = SkColorSetRGB(0x00, 0x05, 0x0f);
+    constexpr SkColor kShaderAccent = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+    constexpr uint8_t kDisabledAlpha = 0x4D;
+
+    SkRect bounds = gfx::RectToSkRect(rect);
+    cc::PaintFlags flags;
+    flags.setAntiAlias(true);
+
+    // Fill.
+    if (text.background_color != 0) {
+      flags.setStyle(cc::PaintFlags::kFill_Style);
+      flags.setColor(kShaderBg);
+      canvas->drawRect(bounds, flags);
+    }
+
+    // Border.
+    if (text.has_border) {
+      flags.setStyle(cc::PaintFlags::kStroke_Style);
+      flags.setStrokeWidth(1.0f);
+      flags.setColor(state == kDisabled
+                         ? SkColorSetA(kShaderAccent, kDisabledAlpha)
+                         : kShaderAccent);
+      SkRect border = bounds;
+      border.inset(0.5f, 0.5f);
+      canvas->drawRect(border, flags);
+    }
+    return;
+  }
+
   SkRect bounds = gfx::RectToSkRect(rect);
   float border_radius =
       GetBorderRadiusForPart(kTextField, rect.width(), rect.height());
@@ -929,6 +1098,82 @@ void NativeThemeBase::PaintMenuList(cc::PaintCanvas* canvas,
                                     const gfx::Rect& rect,
                                     const MenuListExtraParams& menu_list,
                                     ColorScheme color_scheme) const {
+  if (element_shader_enabled()) {
+    constexpr SkColor kShaderAccent = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+
+    // Delegate bg/border to shader-aware PaintTextField.
+    if (!menu_list.has_border_radius) {
+      TextFieldExtraParams text_field;
+      text_field.background_color = menu_list.background_color;
+      text_field.has_border = menu_list.has_border;
+      text_field.zoom = menu_list.zoom;
+      PaintTextField(canvas, color_provider, state, rect, text_field,
+                     color_scheme);
+    }
+
+    // Paint the arrow with shader accent color.
+    cc::PaintFlags flags;
+    flags.setColor(kShaderAccent);
+    flags.setAntiAlias(true);
+    flags.setStyle(cc::PaintFlags::kStroke_Style);
+    flags.setStrokeWidth(kMenuListArrowStrokeWidth);
+
+    if (menu_list.arrow_direction == ui::NativeTheme::ArrowDirection::kDown) {
+      float arrow_width = menu_list.arrow_size;
+      int arrow_height = arrow_width * 0.5;
+      gfx::Rect arrow(menu_list.arrow_x,
+                       menu_list.arrow_y - (arrow_height / 2), arrow_width,
+                       arrow_height);
+      arrow.Intersect(rect);
+      if (arrow_width != arrow.width() || arrow_height != arrow.height()) {
+        int height_clip = arrow_height - arrow.height();
+        int width_clip = arrow_width - arrow.width();
+        if (height_clip > width_clip) {
+          arrow.set_width(arrow.height() * 1.6);
+        } else {
+          arrow.set_height(arrow.width() * 0.6);
+        }
+        arrow.set_y(menu_list.arrow_y - (arrow.height() / 2));
+      }
+      SkPath path;
+      path.moveTo(arrow.x(), arrow.y());
+      path.lineTo(arrow.x() + arrow.width() / 2,
+                  arrow.y() + arrow.height());
+      path.lineTo(arrow.x() + arrow.width(), arrow.y());
+      canvas->drawPath(path, flags);
+    } else {
+      float arrow_height = menu_list.arrow_size;
+      int arrow_width = arrow_height * 0.5;
+      gfx::Rect arrow(menu_list.arrow_x - (arrow_width / 2),
+                       menu_list.arrow_y, arrow_width, arrow_height);
+      arrow.Intersect(rect);
+      if (arrow_width != arrow.width() || arrow_height != arrow.height()) {
+        int height_clip = arrow_height - arrow.height();
+        int width_clip = arrow_width - arrow.width();
+        if (height_clip > width_clip) {
+          arrow.set_width(arrow.height() * 0.6);
+        } else {
+          arrow.set_height(arrow.width() * 1.6);
+        }
+        arrow.set_x(menu_list.arrow_x - (arrow.width() / 2));
+      }
+      SkPath path;
+      if (menu_list.arrow_direction ==
+          ui::NativeTheme::ArrowDirection::kLeft) {
+        path.moveTo(arrow.x() + arrow.width(), arrow.y());
+        path.lineTo(arrow.x(), arrow.y() + arrow.height() / 2);
+        path.lineTo(arrow.x() + arrow.width(), arrow.y() + arrow.height());
+      } else {
+        path.moveTo(arrow.x(), arrow.y());
+        path.lineTo(arrow.x() + arrow.width(),
+                    arrow.y() + arrow.height() / 2);
+        path.lineTo(arrow.x(), arrow.y() + arrow.height());
+      }
+      canvas->drawPath(path, flags);
+    }
+    return;
+  }
+
   // If a border radius is specified paint the background and the border of
   // the menulist, otherwise let the non-theming code paint the background
   // and the border of the control. The arrow (menulist button) is always
@@ -1057,6 +1302,43 @@ void NativeThemeBase::PaintSliderTrack(
     const SliderExtraParams& slider,
     ColorScheme color_scheme,
     const std::optional<SkColor>& accent_color) const {
+  if (element_shader_enabled()) {
+    constexpr SkColor kShaderBg = SkColorSetRGB(0x00, 0x05, 0x0f);
+    constexpr SkColor kShaderAccent = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+
+    cc::PaintFlags flags;
+    flags.setAntiAlias(true);
+    const float track_height = kSliderTrackHeight * slider.zoom;
+    SkRect track_rect = AlignSliderTrack(rect, slider, false, track_height);
+    if (slider.vertical) {
+      track_rect.inset(0, 1);
+    } else {
+      track_rect.inset(1, 0);
+    }
+
+    // Track fill.
+    flags.setStyle(cc::PaintFlags::kFill_Style);
+    flags.setColor(kShaderBg);
+    canvas->drawRect(track_rect, flags);
+
+    // Value bar.
+    SkRect value_rect = AlignSliderTrack(rect, slider, true, track_height);
+    canvas->save();
+    canvas->clipRect(value_rect, SkClipOp::kIntersect, true);
+    flags.setColor(kShaderAccent);
+    canvas->drawRect(track_rect, flags);
+    canvas->restore();
+
+    // Border.
+    flags.setStyle(cc::PaintFlags::kStroke_Style);
+    flags.setStrokeWidth(1.0f);
+    flags.setColor(kShaderAccent);
+    SkRect border = track_rect;
+    border.inset(0.5f, 0.5f);
+    canvas->drawRect(border, flags);
+    return;
+  }
+
   // Paint the entire slider track.
   cc::PaintFlags flags;
   flags.setAntiAlias(true);
@@ -1116,6 +1398,19 @@ void NativeThemeBase::PaintSliderThumb(
     const SliderExtraParams& slider,
     ColorScheme color_scheme,
     const std::optional<SkColor>& accent_color) const {
+  if (element_shader_enabled()) {
+    constexpr SkColor kShaderAccent = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+
+    SkRect thumb_rect = gfx::RectToSkRect(rect);
+    float radius = std::min(thumb_rect.width(), thumb_rect.height()) / 2;
+    cc::PaintFlags flags;
+    flags.setAntiAlias(true);
+    flags.setStyle(cc::PaintFlags::kFill_Style);
+    flags.setColor(kShaderAccent);
+    canvas->drawRoundRect(thumb_rect, radius, radius, flags);
+    return;
+  }
+
   const float radius =
       GetBorderRadiusForPart(kSliderThumb, rect.width(), rect.height());
   SkRect thumb_rect = gfx::RectToSkRect(rect);
@@ -1192,6 +1487,69 @@ void NativeThemeBase::PaintProgressBar(
     ColorScheme color_scheme,
     const std::optional<SkColor>& accent_color) const {
   DCHECK(!rect.IsEmpty());
+
+  if (element_shader_enabled()) {
+    constexpr SkColor kShaderBg = SkColorSetRGB(0x00, 0x05, 0x0f);
+    constexpr SkColor kShaderAccent = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+
+    cc::PaintFlags flags;
+    flags.setAntiAlias(true);
+
+    SliderExtraParams slider;
+    float track_block_thickness = rect.height();
+    if (progress_bar.is_horizontal) {
+      slider.vertical = false;
+      track_block_thickness = rect.height() * kTrackBlockRatio;
+    } else {
+      slider.vertical = true;
+      track_block_thickness = rect.width() * kTrackBlockRatio;
+    }
+    SkRect track_rect =
+        AlignSliderTrack(rect, slider, false, track_block_thickness);
+
+    // Track fill.
+    flags.setStyle(cc::PaintFlags::kFill_Style);
+    flags.setColor(kShaderBg);
+    canvas->drawRect(track_rect, flags);
+
+    // Value bar.
+    const SkScalar kMinimumProgressInlineValue = 2;
+    SkScalar adjusted_height = progress_bar.value_rect_height;
+    SkScalar adjusted_width = progress_bar.value_rect_width;
+    if (slider.vertical) {
+      if (adjusted_height > 0)
+        adjusted_height =
+            std::max(kMinimumProgressInlineValue, adjusted_height);
+    } else {
+      if (adjusted_width > 0)
+        adjusted_width = std::max(kMinimumProgressInlineValue, adjusted_width);
+    }
+    gfx::Rect original_value_rect(progress_bar.value_rect_x,
+                                  progress_bar.value_rect_y, adjusted_width,
+                                  adjusted_height);
+    SkRect value_rect = AlignSliderTrack(original_value_rect, slider, false,
+                                         track_block_thickness);
+    flags.setColor(kShaderAccent);
+    canvas->save();
+    // Clip to track bounds.
+    canvas->clipRect(track_rect, SkClipOp::kIntersect, true);
+    if (progress_bar.determinate) {
+      canvas->drawRect(value_rect, flags);
+    } else {
+      canvas->drawRect(value_rect, flags);
+    }
+    canvas->restore();
+
+    // Border.
+    flags.setStyle(cc::PaintFlags::kStroke_Style);
+    flags.setStrokeWidth(1.0f);
+    flags.setColor(kShaderAccent);
+    SkRect border = track_rect;
+    border.inset(0.5f, 0.5f);
+    canvas->drawRect(border, flags);
+    return;
+  }
+
   // Paint the track.
   cc::PaintFlags flags;
   flags.setAntiAlias(true);
