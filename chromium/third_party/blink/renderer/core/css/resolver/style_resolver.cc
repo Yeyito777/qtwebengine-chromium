@@ -254,10 +254,18 @@ void ApplyElementShader(StyleResolverState& state) {
     }
   }
   if (!used_chromatic) {
-    builder.SetColor(kTargetTextStyle);                        // Main text color
-    builder.SetTextFillColor(kTargetTextStyle);                // -webkit-text-fill-color (overrides color)
-    builder.SetInternalVisitedColor(kTargetTextStyle);         // Visited link color
-    builder.SetInternalVisitedTextFillColor(kTargetTextStyle); // Visited link fill color
+    // Preserve original text alpha (e.g. semi-transparent text stays semi-transparent)
+    int orig_alpha = 255;
+    if (text_opt.has_value() && !text_opt.value().IsCurrentColor()) {
+      orig_alpha = text_opt.value().GetColor().Alpha();
+    }
+    Color target_text_with_alpha(0xff, 0xff, 0xff);
+    target_text_with_alpha.SetAlpha(orig_alpha);
+    StyleColor target_text_style(target_text_with_alpha);
+    builder.SetColor(target_text_style);                        // Main text color
+    builder.SetTextFillColor(target_text_style);                // -webkit-text-fill-color (overrides color)
+    builder.SetInternalVisitedColor(target_text_style);         // Visited link color
+    builder.SetInternalVisitedTextFillColor(target_text_style); // Visited link fill color
   }
 
   // Recolor borders to target color (optionally preserving alpha)
