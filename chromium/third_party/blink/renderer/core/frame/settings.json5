@@ -990,7 +990,7 @@
     //
     {
       name: "elementShaderEnabled",
-      initial: true,
+      initial: false,
       invalidate: ["Style", "Paint"],
     },
 

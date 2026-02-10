@@ -305,7 +305,7 @@ struct BLINK_COMMON_EXPORT WebPreferences {
   bool force_dark_mode_enabled = false;
 
   // Enable the element shader (custom style transforms in style resolution).
-  bool element_shader_enabled = true;
+  bool element_shader_enabled = false;
 
   // Default (used if the page or UA doesn't override these) values for page
   // scale limits. These are set directly on the WebView so there's no analogue
