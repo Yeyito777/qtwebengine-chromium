@@ -603,6 +603,11 @@ class NATIVE_THEME_EXPORT NativeTheme {
     use_overlay_scrollbars_ = use_overlay_scrollbar;
   }
 
+  static bool element_shader_enabled() { return element_shader_enabled_; }
+  static void set_element_shader_enabled(bool enabled) {
+    element_shader_enabled_ = enabled;
+  }
+
   // On certain platforms, currently only Mac, there is a unique visual for
   // pressed states.
   virtual SkColor GetSystemButtonPressedColor(SkColor base_color) const;
@@ -713,6 +718,7 @@ class NATIVE_THEME_EXPORT NativeTheme {
   PreferredContrast preferred_contrast_ = PreferredContrast::kNoPreference;
   std::optional<base::TimeDelta> caret_blink_interval_;
   bool use_overlay_scrollbars_ = false;
+  static bool element_shader_enabled_;
 
   SEQUENCE_CHECKER(sequence_checker_);
 };

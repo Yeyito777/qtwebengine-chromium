@@ -217,6 +217,41 @@ void ApplyElementShader(StyleResolverState& state) {
     return;
   }
 
+  // Handle ::-webkit-scrollbar-* pseudo-elements — force shader scrollbar theme
+  PseudoId pseudo = builder.StyleType();
+  if (pseudo == kPseudoIdScrollbar ||
+      pseudo == kPseudoIdScrollbarThumb ||
+      pseudo == kPseudoIdScrollbarButton ||
+      pseudo == kPseudoIdScrollbarTrack ||
+      pseudo == kPseudoIdScrollbarTrackPiece ||
+      pseudo == kPseudoIdScrollbarCorner) {
+    // All scrollbar parts: background #00050f, border-radius 0
+    builder.SetBackgroundColor(StyleColor(Color(0x00, 0x05, 0x0f)));
+    const LengthSize kZero(Length::Fixed(0), Length::Fixed(0));
+    builder.SetBorderTopLeftRadius(kZero);
+    builder.SetBorderTopRightRadius(kZero);
+    builder.SetBorderBottomLeftRadius(kZero);
+    builder.SetBorderBottomRightRadius(kZero);
+
+    // Thumb only: border 1px solid #1d9bf0
+    if (pseudo == kPseudoIdScrollbarThumb) {
+      const StyleColor kBorder(Color(0x1d, 0x9b, 0xf0));
+      builder.SetBorderTopColor(kBorder);
+      builder.SetBorderRightColor(kBorder);
+      builder.SetBorderBottomColor(kBorder);
+      builder.SetBorderLeftColor(kBorder);
+      builder.SetBorderTopStyle(EBorderStyle::kSolid);
+      builder.SetBorderRightStyle(EBorderStyle::kSolid);
+      builder.SetBorderBottomStyle(EBorderStyle::kSolid);
+      builder.SetBorderLeftStyle(EBorderStyle::kSolid);
+      builder.SetBorderTopWidth(1);
+      builder.SetBorderRightWidth(1);
+      builder.SetBorderBottomWidth(1);
+      builder.SetBorderLeftWidth(1);
+    }
+    return;
+  }
+
   // Target colors
   const Color kTargetBackground(0x00, 0x05, 0x0f);  // #00050f
   const Color kTargetText(0xff, 0xff, 0xff);        // #ffffff

@@ -200,14 +200,93 @@ void NativeThemeAura::PaintArrowButton(
     ColorScheme color_scheme,
     bool in_forced_colors,
     const ScrollbarArrowExtraParams& extra_params) const {
-  constexpr SkColor kShaderBg = SkColorSetRGB(0x00, 0x05, 0x0f);
-  constexpr SkColor kShaderArrow = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+  if (element_shader_enabled()) {
+    constexpr SkColor kShaderBg = SkColorSetRGB(0x00, 0x05, 0x0f);
+    constexpr SkColor kShaderArrow = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+
+    cc::PaintFlags flags;
+    flags.setColor(kShaderBg);
+    canvas->drawIRect(gfx::RectToSkIRect(rect), flags);
+
+    PaintArrow(canvas, rect, direction, kShaderArrow);
+    return;
+  }
+
+  SkColor bg_color =
+      GetControlColor(kScrollbarArrowBackground, color_scheme, color_provider);
+  SkColor arrow_color = gfx::kPlaceholderColor;
+  switch (state) {
+    case kDisabled:
+      arrow_color = GetArrowColor(state, color_scheme, color_provider);
+      break;
+    case kHovered:
+      bg_color = GetControlColor(kScrollbarArrowBackgroundHovered, color_scheme,
+                                 color_provider);
+      arrow_color =
+          GetControlColor(kScrollbarArrowHovered, color_scheme, color_provider);
+      break;
+    case kNormal:
+      arrow_color =
+          GetControlColor(kScrollbarArrow, color_scheme, color_provider);
+      break;
+    case kPressed:
+      bg_color = GetControlColor(kScrollbarArrowBackgroundPressed, color_scheme,
+                                 color_provider);
+      arrow_color =
+          GetControlColor(kScrollbarArrowPressed, color_scheme, color_provider);
+      break;
+    case kNumStates:
+      break;
+  }
+  if (extra_params.thumb_color.has_value() &&
+      extra_params.thumb_color.value() == gfx::kPlaceholderColor) {
+    DLOG(ERROR) << "thumb_color with a placeholderColor value encountered";
+  }
+  if (extra_params.track_color.has_value() &&
+      extra_params.track_color.value() != gfx::kPlaceholderColor) {
+    bg_color = GetContrastingPressedOrHoveredColor(extra_params.track_color,
+                                                   /*bg_color=*/std::nullopt,
+                                                   state, direction)
+                   .value();
+  }
+  if (extra_params.thumb_color.has_value() &&
+      extra_params.thumb_color.value() != gfx::kPlaceholderColor) {
+    arrow_color = GetContrastingPressedOrHoveredColor(
+                      extra_params.thumb_color, bg_color, state, direction)
+                      .value();
+  }
+  DCHECK_NE(arrow_color, gfx::kPlaceholderColor);
 
   cc::PaintFlags flags;
-  flags.setColor(kShaderBg);
-  canvas->drawIRect(gfx::RectToSkIRect(rect), flags);
+  flags.setColor(bg_color);
 
-  PaintArrow(canvas, rect, direction, kShaderArrow);
+  if (base::FeatureList::IsEnabled(kNewScrollbarArrowRadius) &&
+      !extra_params.needs_rounded_corner) {
+    canvas->drawIRect(gfx::RectToSkIRect(rect), flags);
+  } else {
+    SkScalar upper_left_radius = 0;
+    SkScalar lower_left_radius = 0;
+    SkScalar upper_right_radius = 0;
+    SkScalar lower_right_radius = 0;
+    float zoom = extra_params.zoom ? extra_params.zoom : 1.0;
+    if (direction == kScrollbarUpArrow) {
+      if (extra_params.right_to_left) {
+        upper_left_radius = kScrollbarArrowRadius * zoom;
+      } else {
+        upper_right_radius = kScrollbarArrowRadius * zoom;
+      }
+    } else if (direction == kScrollbarDownArrow) {
+      if (extra_params.right_to_left) {
+        lower_left_radius = kScrollbarArrowRadius * zoom;
+      } else {
+        lower_right_radius = kScrollbarArrowRadius * zoom;
+      }
+    }
+    DrawPartiallyRoundRect(canvas, rect, upper_left_radius, upper_right_radius,
+                           lower_right_radius, lower_left_radius, flags);
+  }
+
+  PaintArrow(canvas, rect, direction, arrow_color);
 }
 
 void NativeThemeAura::PaintScrollbarTrack(
@@ -222,7 +301,15 @@ void NativeThemeAura::PaintScrollbarTrack(
   // Overlay Scrollbar should never paint a scrollbar track.
   DCHECK(!use_overlay_scrollbar());
   cc::PaintFlags flags;
-  flags.setColor(SkColorSetRGB(0x00, 0x05, 0x0f));
+  if (element_shader_enabled()) {
+    flags.setColor(SkColorSetRGB(0x00, 0x05, 0x0f));
+  } else {
+    const SkColor track_color =
+        extra_params.track_color.has_value()
+            ? extra_params.track_color.value()
+            : GetControlColor(kScrollbarTrack, color_scheme, color_provider);
+    flags.setColor(track_color);
+  }
   canvas->drawIRect(gfx::RectToSkIRect(rect), flags);
 }
 
@@ -241,27 +328,73 @@ void NativeThemeAura::PaintScrollbarThumb(
 
   TRACE_EVENT0("blink", "NativeThemeAura::PaintScrollbarThumb");
 
-  constexpr SkColor kShaderBg = SkColorSetRGB(0x00, 0x05, 0x0f);
-  constexpr SkColor kShaderBorder = SkColorSetRGB(0x1d, 0x9b, 0xf0);
+  if (element_shader_enabled()) {
+    constexpr SkColor kShaderBg = SkColorSetRGB(0x00, 0x05, 0x0f);
+    constexpr SkColor kShaderBorder = SkColorSetRGB(0x1d, 0x9b, 0xf0);
 
-  gfx::Rect fill_rect(rect);
-  if (!use_overlay_scrollbar()) {
-    fill_rect.Inset(GetScrollbarSolidColorThumbInsets(part));
+    gfx::Rect fill_rect(rect);
+    if (!use_overlay_scrollbar()) {
+      fill_rect.Inset(GetScrollbarSolidColorThumbInsets(part));
+    }
+
+    cc::PaintFlags fill_flags;
+    fill_flags.setColor(kShaderBg);
+    canvas->drawIRect(gfx::RectToSkIRect(fill_rect), fill_flags);
+
+    cc::PaintFlags stroke_flags;
+    stroke_flags.setColor(kShaderBorder);
+    stroke_flags.setStyle(cc::PaintFlags::kStroke_Style);
+    stroke_flags.setStrokeWidth(1);
+    gfx::RectF border_rect(fill_rect);
+    border_rect.Inset(0.5f);
+    canvas->drawRect(gfx::RectFToSkRect(border_rect), stroke_flags);
+    return;
   }
 
-  // Fill with background
+  gfx::Rect fill_rect(rect);
   cc::PaintFlags fill_flags;
-  fill_flags.setColor(kShaderBg);
-  canvas->drawIRect(gfx::RectToSkIRect(fill_rect), fill_flags);
 
-  // Draw 1px border
-  cc::PaintFlags stroke_flags;
-  stroke_flags.setColor(kShaderBorder);
-  stroke_flags.setStyle(cc::PaintFlags::kStroke_Style);
-  stroke_flags.setStrokeWidth(1);
-  gfx::RectF border_rect(fill_rect);
-  border_rect.Inset(0.5f);
-  canvas->drawRect(gfx::RectFToSkRect(border_rect), stroke_flags);
+  if (use_overlay_scrollbar()) {
+    if (state == NativeTheme::kDisabled) {
+      return;
+    }
+
+    const bool hovered = state != kNormal;
+
+    DCHECK(color_provider);
+    fill_flags.setColor(extra_params.thumb_color.value_or(
+        color_provider->GetColor(hovered ? kColorOverlayScrollbarFillHovered
+                                         : kColorOverlayScrollbarFill)));
+    const SkColor stroke_color =
+        color_provider->GetColor(hovered ? kColorOverlayScrollbarStrokeHovered
+                                         : kColorOverlayScrollbarStroke);
+
+    constexpr int kStrokeWidth = kOverlayScrollbarStrokeWidth;
+    cc::PaintFlags stroke_flags;
+    stroke_flags.setColor(stroke_color);
+    stroke_flags.setStyle(cc::PaintFlags::kStroke_Style);
+    stroke_flags.setStrokeWidth(kStrokeWidth);
+
+    gfx::RectF stroke_rect(fill_rect);
+    gfx::InsetsF stroke_insets(kStrokeWidth / 2.f);
+    gfx::Insets edge_adjust_insets;
+    if (part == NativeTheme::kScrollbarHorizontalThumb) {
+      edge_adjust_insets.set_bottom(-kStrokeWidth);
+    } else {
+      edge_adjust_insets.set_right(-kStrokeWidth);
+    }
+    stroke_rect.Inset(stroke_insets + gfx::InsetsF(edge_adjust_insets));
+    canvas->drawRect(gfx::RectFToSkRect(stroke_rect), stroke_flags);
+
+    gfx::Insets fill_insets(kStrokeWidth);
+    fill_rect.Inset(fill_insets + edge_adjust_insets);
+  } else {
+    fill_rect.Inset(GetScrollbarSolidColorThumbInsets(part));
+    fill_flags.setColor(
+        GetScrollbarThumbColor(*color_provider, state, extra_params));
+  }
+
+  canvas->drawIRect(gfx::RectToSkIRect(fill_rect), fill_flags);
 }
 
 gfx::Insets NativeThemeAura::GetScrollbarSolidColorThumbInsets(
@@ -312,7 +445,13 @@ void NativeThemeAura::PaintScrollbarCorner(
   // Overlay Scrollbar should never paint a scrollbar corner.
   DCHECK(!use_overlay_scrollbar());
   cc::PaintFlags flags;
-  flags.setColor(SkColorSetRGB(0x00, 0x05, 0x0f));
+  if (element_shader_enabled()) {
+    flags.setColor(SkColorSetRGB(0x00, 0x05, 0x0f));
+  } else {
+    const SkColor default_corner_color = GetControlColor(
+        kScrollbarCornerControlColorId, color_scheme, color_provider);
+    flags.setColor(extra_params.track_color.value_or(default_corner_color));
+  }
   canvas->drawIRect(RectToSkIRect(rect), flags);
 }
 

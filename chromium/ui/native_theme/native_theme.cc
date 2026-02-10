@@ -27,6 +27,9 @@
 
 namespace ui {
 
+// Static member definition for element shader flag (shared per-process).
+bool NativeTheme::element_shader_enabled_ = false;
+
 namespace {
 static constexpr base::TimeDelta kDefaultCaretBlinkInterval =
     base::Milliseconds(500);

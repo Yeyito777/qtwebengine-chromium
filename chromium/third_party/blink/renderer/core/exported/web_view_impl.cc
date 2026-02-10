@@ -187,6 +187,7 @@
 #include "third_party/icu/source/common/unicode/uscript.h"
 #include "ui/base/ui_base_features.h"
 #include "ui/gfx/geometry/skia_conversions.h"
+#include "ui/native_theme/native_theme.h"
 
 #if BUILDFLAG(IS_CHROMEOS)
 #include "ui/native_theme/native_theme.h"
@@ -1810,6 +1811,7 @@ void WebView::ApplyWebPreferences(const web_pref::WebPreferences& prefs,
 
   settings->SetForceDarkModeEnabled(prefs.force_dark_mode_enabled);
   settings->SetElementShaderEnabled(prefs.element_shader_enabled);
+  ui::NativeTheme::set_element_shader_enabled(prefs.element_shader_enabled);
   fprintf(stderr, "[SHADER-DEBUG-2] web_view_impl: element_shader_enabled = %s\n",
           prefs.element_shader_enabled ? "true" : "false");
 
