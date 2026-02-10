@@ -672,6 +672,11 @@ struct BLINK_COMMON_EXPORT StructTraits<blink::mojom::WebPreferencesDataView,
     return r.force_dark_mode_enabled;
   }
 
+  static bool element_shader_enabled(
+      const blink::web_pref::WebPreferences& r) {
+    return r.element_shader_enabled;
+  }
+
   static float default_minimum_page_scale_factor(
       const blink::web_pref::WebPreferences& r) {
     return r.default_minimum_page_scale_factor;

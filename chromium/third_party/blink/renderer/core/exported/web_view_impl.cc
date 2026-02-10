@@ -1810,6 +1810,8 @@ void WebView::ApplyWebPreferences(const web_pref::WebPreferences& prefs,
 
   settings->SetForceDarkModeEnabled(prefs.force_dark_mode_enabled);
   settings->SetElementShaderEnabled(prefs.element_shader_enabled);
+  fprintf(stderr, "[SHADER-DEBUG-2] web_view_impl: element_shader_enabled = %s\n",
+          prefs.element_shader_enabled ? "true" : "false");
 
   settings->SetAccessibilityAlwaysShowFocus(prefs.always_show_focus);
   settings->SetAutoplayPolicy(prefs.autoplay_policy);

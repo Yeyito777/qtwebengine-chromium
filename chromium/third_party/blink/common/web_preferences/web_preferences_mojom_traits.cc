@@ -202,6 +202,7 @@ bool StructTraits<blink::mojom::WebPreferencesDataView,
 #endif  // BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_FUCHSIA)
 
   out->force_dark_mode_enabled = data.force_dark_mode_enabled();
+  out->element_shader_enabled = data.element_shader_enabled();
   out->default_minimum_page_scale_factor =
       data.default_minimum_page_scale_factor();
   out->default_maximum_page_scale_factor =

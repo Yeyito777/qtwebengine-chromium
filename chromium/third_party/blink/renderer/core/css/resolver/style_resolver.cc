@@ -198,7 +198,14 @@ StyleImage* CreateShaderGradient(float start_alpha, float end_alpha) {
 void ApplyElementShader(StyleResolverState& state) {
   // Check if shader is disabled via Settings
   const Settings* settings = state.GetDocument().GetSettings();
-  if (!settings || !settings->GetElementShaderEnabled()) {
+  static bool last_logged_value = true;
+  bool current_value = settings && settings->GetElementShaderEnabled();
+  if (current_value != last_logged_value) {
+    fprintf(stderr, "[SHADER-DEBUG-3] style_resolver: GetElementShaderEnabled() = %s\n",
+            current_value ? "true" : "false");
+    last_logged_value = current_value;
+  }
+  if (!current_value) {
     return;
   }
 
