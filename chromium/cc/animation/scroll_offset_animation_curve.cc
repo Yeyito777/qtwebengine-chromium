@@ -16,8 +16,8 @@
 const double kConstantDuration = 9.0;
 const double kDurationDivisor = 60.0;
 
-// 0.7 seconds limit for long-distance programmatic scrolls
-const double kDeltaBasedMaxDuration = 0.7 * kDurationDivisor;
+// 0.35 seconds limit for long-distance programmatic scrolls
+const double kDeltaBasedMaxDuration = 0.35 * kDurationDivisor;
 
 const double kInverseDeltaRampStartPx = 120.0;
 const double kInverseDeltaRampEndPx = 480.0;
@@ -148,7 +148,7 @@ base::TimeDelta ScrollOffsetAnimationCurve::EaseInOutSegmentDuration(
         break;
       case DurationBehavior::kDeltaBased:
         duration =
-            std::min<double>(std::sqrt(std::abs(MaximumDimension(delta))),
+            std::min<double>(std::sqrt(std::abs(MaximumDimension(delta))) * 0.5,
                              kDeltaBasedMaxDuration);
         break;
       case DurationBehavior::kInverseDelta:
