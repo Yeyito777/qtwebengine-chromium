@@ -464,11 +464,67 @@ void ApplyElementShader(StyleResolverState& state) {
     builder.SetInternalVisitedBackgroundColor(StyleColor(darkened));
   } else {
     // Non-chromatic or large element — use target dark background, preserve alpha
-    // Hovered/active elements with a CSS-specified bg get #090d35 for feedback
     Color target_with_alpha(0x00, 0x05, 0x0f);
-    if (!force_dark && !bg_color.IsFullyTransparent() &&
-        (element.IsHovered() || element.IsActive())) {
-      target_with_alpha = Color(0x09, 0x0d, 0x35);
+    // Detect highlight states (hover, active, class-based selection) by
+    // brightness: if element bg is in the "light grey" range (0.5–0.95),
+    // it's deliberately darker than its white/light surroundings.
+    // Parent must be transparent (page bg shows through) or post-shader
+    // dark (<40 per channel, was originally light).
+    // Also skip for large elements (area check, same threshold as chromatic).
+    if (!force_dark && !bg_color.IsFullyTransparent()) {
+      bool too_large = false;
+      LayoutObject* lo = element.GetLayoutObject();
+      if (lo && lo->IsBox()) {
+        // Use actual layout dimensions from previous frame
+        auto* box = To<LayoutBox>(lo);
+        float area = box->OffsetWidth().ToFloat() * box->OffsetHeight().ToFloat();
+        if (area > kMaxChromaticBgArea)
+          too_large = true;
+      } else {
+        // No layout object yet (first style resolution) — estimate area
+        // from CSS dimensions, resolving %, vw/vh against viewport.
+        const auto& viewport =
+            state.GetDocument().GetStyleEngine().GetViewportSize();
+        double vw = viewport.Width();
+        double vh = viewport.Height();
+        const Length& css_w = builder.Width();
+        const Length& css_h = builder.Height();
+        float est_w = 0, est_h = 0;
+        if (css_w.IsFixed()) {
+          est_w = css_w.Pixels();
+        } else if (css_w.IsPercent()) {
+          est_w = static_cast<float>(css_w.Percent() * vw / 100.0);
+        } else if (css_w.IsAuto()) {
+          // Block-level elements with auto width fill their container;
+          // approximate with viewport width.
+          EDisplay disp = builder.Display();
+          if (disp == EDisplay::kBlock || disp == EDisplay::kFlex ||
+              disp == EDisplay::kGrid || disp == EDisplay::kTable ||
+              disp == EDisplay::kFlowRoot || disp == EDisplay::kListItem) {
+            est_w = static_cast<float>(vw);
+          }
+        }
+        if (css_h.IsFixed()) {
+          est_h = css_h.Pixels();
+        } else if (css_h.IsPercent()) {
+          est_h = static_cast<float>(css_h.Percent() * vh / 100.0);
+        }
+        if (est_w * est_h > kMaxChromaticBgArea)
+          too_large = true;
+      }
+      float bg_brightness = (bg_r + bg_g + bg_b) / (3.0f * 255.0f);
+      if (!too_large && bg_brightness > 0.5f && bg_brightness < 0.95f) {
+        const ComputedStyle* parent_style = state.ParentStyle();
+        if (parent_style) {
+          Color parent_bg = parent_style->VisitedDependentColor(
+              GetCSSPropertyBackgroundColor());
+          if (parent_bg.IsFullyTransparent() ||
+              (parent_bg.Red() < 40 && parent_bg.Green() < 40 &&
+               parent_bg.Blue() < 40)) {
+            target_with_alpha = Color(0x09, 0x0d, 0x35);
+          }
+        }
+      }
     }
     target_with_alpha.SetAlpha(bg_color.Alpha());
     builder.SetBackgroundColor(StyleColor(target_with_alpha));
