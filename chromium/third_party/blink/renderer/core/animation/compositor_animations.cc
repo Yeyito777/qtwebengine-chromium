@@ -317,6 +317,19 @@ CompositorAnimations::CheckCanStartEffectOnCompositor(
                                        &reasons);
           break;
         }
+        // Element shader: force background-color animations to main thread
+        // so the shader can transform colors every frame.
+        if (property.GetCSSProperty().PropertyID() ==
+                CSSPropertyID::kBackgroundColor) {
+          const Settings* shader_settings =
+              target_element.GetDocument().GetSettings();
+          if (shader_settings &&
+              shader_settings->GetElementShaderEnabled()) {
+            DefaultToUnsupportedProperty(unsupported_properties, property,
+                                         &reasons);
+            break;
+          }
+        }
         if (property.GetCSSProperty().PropertyID() ==
                 CSSPropertyID::kBackgroundColor &&
             RuntimeEnabledFeatures::CompositeBGColorAnimationEnabled()) {

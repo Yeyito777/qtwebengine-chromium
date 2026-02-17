@@ -461,12 +461,24 @@ void ApplyElementShader(StyleResolverState& state) {
         static_cast<float>(l),
         bg_color.Alpha());
     builder.SetBackgroundColor(StyleColor(darkened));
+    builder.SetInternalVisitedBackgroundColor(StyleColor(darkened));
   } else {
     // Non-chromatic or large element — use target dark background, preserve alpha
+    // Hovered/active elements with a CSS-specified bg get #090d35 for feedback
     Color target_with_alpha(0x00, 0x05, 0x0f);
+    if (!force_dark && !bg_color.IsFullyTransparent() &&
+        (element.IsHovered() || element.IsActive())) {
+      target_with_alpha = Color(0x09, 0x0d, 0x35);
+    }
     target_with_alpha.SetAlpha(bg_color.Alpha());
     builder.SetBackgroundColor(StyleColor(target_with_alpha));
+    builder.SetInternalVisitedBackgroundColor(StyleColor(target_with_alpha));
   }
+
+  // Force visited links to use unvisited (shader-transformed) colors.
+  // Without this, VisitedDependentColor() reads InternalVisited* properties
+  // which may not reflect our shader overrides in all pipeline paths.
+  builder.SetInsideLink(EInsideLink::kNotInsideLink);
 }
 // =============================================================================
 
