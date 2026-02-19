@@ -171,6 +171,7 @@ class LocalStorageImpl : public base::trace_event::MemoryDumpProvider,
   std::unique_ptr<AsyncDomStorageDatabase> database_;
   bool tried_to_recreate_during_open_ = false;
   bool in_memory_ = false;
+  int open_retries_ = 0;
 
   std::vector<base::OnceClosure> on_database_opened_callbacks_;
 

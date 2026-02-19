@@ -658,11 +658,35 @@ void LocalStorageImpl::InitiateConnection(bool in_memory_only) {
 
 void LocalStorageImpl::OnDatabaseOpened(leveldb::Status status) {
   if (!status.ok()) {
-    // If we failed to open the database, try to delete and recreate the
-    // database, or ultimately fallback to an in-memory database.
+    if (status.IsIOError() && open_retries_ < 6) {
+      // Transient error — likely a LOCK conflict from a previous instance
+      // that is still shutting down. Retry instead of destroying data.
+      ++open_retries_;
+      connection_state_ = CONNECTION_IN_PROGRESS;
+      database_.reset();
+      base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
+          FROM_HERE,
+          base::BindOnce(&LocalStorageImpl::InitiateConnection,
+                         weak_ptr_factory_.GetWeakPtr(), false),
+          base::Milliseconds(500));
+      return;
+    }
+    if (status.IsIOError()) {
+      // All retries exhausted but still a transient error. Fall back to
+      // in-memory storage WITHOUT destroying on-disk data so that the
+      // next clean startup can recover it.
+      connection_state_ = CONNECTION_IN_PROGRESS;
+      database_.reset();
+      InitiateConnection(/*in_memory_only=*/true);
+      return;
+    }
+    // Non-transient error (corruption, version mismatch, etc.) —
+    // existing destroy-and-recreate behavior.
     DeleteAndRecreateDatabase();
     return;
   }
+
+  open_retries_ = 0;
 
   // Verify DB schema version.
   if (database_) {
