@@ -348,18 +348,6 @@ void ApplyElementShader(StyleResolverState& state) {
   builder.SetBorderBottomLeftRadius(kZeroRadius);
   builder.SetBorderBottomRightRadius(kZeroRadius);
 
-  // Remove SVG/CSS masks (Discord uses SVG <mask> with circles/squircles
-  // on <foreignObject> to round avatars and server icons)
-  FillLayer& mask_layers = builder.AccessMaskLayers();
-  mask_layers.ClearImage();
-  for (FillLayer* layer = mask_layers.Next(); layer; layer = layer->Next()) {
-    layer->ClearImage();
-  }
-  builder.AdjustMaskLayers();
-
-  // Remove clip-path (another way sites clip elements to circles)
-  builder.SetClipPath(nullptr);
-
   // Check for gradients in background layers and replace them
   FillLayer& bg_layers = builder.AccessBackgroundLayers();
   for (FillLayer* layer = &bg_layers; layer; layer = layer->Next()) {
