@@ -9,6 +9,7 @@
 #include "base/task/single_thread_task_runner.h"
 #include "build/build_config.h"
 #include "net/base/request_priority.h"
+#include "net/http/http_request_headers.h"
 #include "services/network/public/mojom/fetch_api.mojom-shared.h"
 #include "services/network/public/mojom/url_response_head.mojom-forward.h"
 #include "third_party/blink/public/mojom/loader/resource_load_info.mojom.h"
@@ -52,7 +53,8 @@ class BLINK_PLATFORM_EXPORT ResourceLoadInfoNotifierWrapper {
       const GURL& referrer,
       network::mojom::RequestDestination request_destination,
       net::RequestPriority request_priority,
-      bool is_ad_resource);
+      bool is_ad_resource,
+      const net::HttpRequestHeaders& request_headers = net::HttpRequestHeaders());
   void NotifyResourceRedirectReceived(
       const net::RedirectInfo& redirect_info,
       network::mojom::URLResponseHeadPtr redirect_response);

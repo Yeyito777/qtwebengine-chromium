@@ -126,4 +126,7 @@ struct ResourceLoadInfo {
 
   // The HTTP Status Code
   int32 http_status_code;
+
+  // The HTTP request headers (name → value).
+  map<string, string> request_headers;
 };

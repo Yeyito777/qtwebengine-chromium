@@ -65,7 +65,8 @@ void ResourceLoadInfoNotifierWrapper::NotifyResourceLoadInitiated(
     const GURL& referrer,
     network::mojom::RequestDestination request_destination,
     net::RequestPriority request_priority,
-    bool is_ad_resource) {
+    bool is_ad_resource,
+    const net::HttpRequestHeaders& request_headers) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
   DCHECK(!resource_load_info_);
@@ -79,6 +80,12 @@ void ResourceLoadInfoNotifierWrapper::NotifyResourceLoadInitiated(
   resource_load_info_->network_info = mojom::CommonNetworkInfo::New();
   resource_load_info_->request_priority = request_priority;
   is_ad_resource_ = is_ad_resource;
+
+  // Store request headers
+  net::HttpRequestHeaders::Iterator it(request_headers);
+  while (it.GetNext()) {
+    resource_load_info_->request_headers[it.name()] = it.value();
+  }
 }
 
 void ResourceLoadInfoNotifierWrapper::NotifyResourceRedirectReceived(
