@@ -293,15 +293,16 @@ class ExtensionRegistrar : public ProcessManagerObserver {
 
   void OnUnpackedExtensionReloadFailed(const base::FilePath& path);
 
+ // Activates |extension| by marking it enabled and notifying other components
+  // about it. Public for QtWebEngine ExtensionLoader to call directly,
+  // bypassing EnableExtension's pref checks that aren't available in Qt.
+  void ActivateExtension(const Extension* extension, bool is_newly_added);
+
  private:
   // Adds the extension to the appropriate registry set, based on ExtensionPrefs
   // and our |delegate_|. Activates the extension if it's added to the enabled
   // set.
   void AddNewExtension(scoped_refptr<const Extension> extension);
-
-  // Activates |extension| by marking it enabled and notifying other components
-  // about it.
-  void ActivateExtension(const Extension* extension, bool is_newly_added);
 
   // Triggers the unloaded notifications to deactivate an extension.
   void DeactivateExtension(const Extension* extension,
