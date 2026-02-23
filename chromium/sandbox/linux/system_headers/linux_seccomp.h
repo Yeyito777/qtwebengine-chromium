@@ -214,7 +214,14 @@ struct seccomp_notif_addfd {
 #define SECCOMP_RET_INVALID 0x00010000U  // Illegal return value
 #endif
 
-#ifndef SYS_SECCOMP
+// Modern glibc (2.41+) defines SYS_SECCOMP as an enum constant + macro
+// in <bits/siginfo-consts.h> (via <signal.h>). If we define SYS_SECCOMP
+// as a plain #define before <signal.h>, macro expansion corrupts the enum.
+// Detect glibc via <features.h> and let <signal.h> provide the definition.
+#if __has_include(<features.h>)
+#include <features.h>
+#endif
+#if !defined(SYS_SECCOMP) && !defined(__GLIBC__)
 #define SYS_SECCOMP                   1
 #endif
 

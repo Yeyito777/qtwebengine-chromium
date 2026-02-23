@@ -290,6 +290,11 @@ class COMPOSITOR_EXPORT Compositor : public base::PowerSuspendObserver,
   // Gets the visibility of the underlying compositor.
   bool IsVisible();
 
+  // Forces the display to immediately draw and swap, servicing any pending
+  // CopyOutputRequests. Needed by QtWebEngine's CopyFromSurface path because
+  // the viz Display may not be actively drawing frames.
+  void ForceImmediateDrawAndSwapIfPossible();
+
   // Gets or sets the scroll offset for the given layer in step with the
   // cc::InputHandler. Returns true if the layer is active on the impl side.
   bool GetScrollOffsetForLayer(cc::ElementId element_id,

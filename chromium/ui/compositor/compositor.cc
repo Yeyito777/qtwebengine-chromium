@@ -582,6 +582,11 @@ bool Compositor::IsVisible() {
   return host_->IsVisible();
 }
 
+void Compositor::ForceImmediateDrawAndSwapIfPossible() {
+  if (display_private_)
+    display_private_->ForceImmediateDrawAndSwapIfPossible();
+}
+
 // TODO(bokan): These calls should be delegated through the
 // scroll_input_handler_ so that we don't have to keep a pointer to the
 // cc::InputHandler in this class.
