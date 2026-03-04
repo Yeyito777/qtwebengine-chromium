@@ -71,7 +71,8 @@ media::AudioOutputStream* OutputDeviceMixerManager::MakeOutputStream(
   OutputDeviceMixer* mixer = nullptr;
   StreamCreation stream_creation = StreamCreation::kUnmixable;
 
-  if (params.format() == media::AudioParameters::AUDIO_PCM_LOW_LATENCY) {
+  if (params.format() == media::AudioParameters::AUDIO_PCM_LOW_LATENCY &&
+      params.latency_tag() != media::AudioLatency::Type::kRtc) {
     std::string mixer_device_id = ToMixerDeviceId(device_id);
     mixer = FindMixer(mixer_device_id);
     if (mixer) {

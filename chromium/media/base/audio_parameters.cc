@@ -326,7 +326,8 @@ bool AudioParameters::Equals(const AudioParameters& other) const {
          channel_layout() == other.channel_layout() &&
          channels() == other.channels() &&
          frames_per_buffer_ == other.frames_per_buffer() &&
-         effects_ == other.effects() && mic_positions_ == other.mic_positions_;
+         effects_ == other.effects() && mic_positions_ == other.mic_positions_ &&
+         latency_tag_ == other.latency_tag_;
 }
 
 bool AudioParameters::IsBitstreamFormat() const {

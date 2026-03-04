@@ -580,6 +580,13 @@ bool CreateOutputStream(raw_ptr<pa_threaded_mainloop>* mainloop,
   ScopedPropertyList property_list;
   pa_proplist_sets(property_list.get(), PA_PROP_APPLICATION_ICON_NAME,
                    kBrowserDisplayName);
+
+  // Tag RTC streams (WebRTC voice) with media.role=communication so that
+  // PipeWire/WirePlumber can route them independently from regular playback.
+  if (params.latency_tag() == AudioLatency::Type::kRtc) {
+    pa_proplist_sets(property_list.get(), PA_PROP_MEDIA_ROLE, "communication");
+  }
+
   *stream = pa_stream_new_with_proplist(
       *context, "Playback", &sample_specifications, map, property_list.get());
   RETURN_ON_FAILURE(*stream, "failed to create PA playback stream");

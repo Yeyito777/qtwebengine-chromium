@@ -55,10 +55,7 @@ PulseAudioOutputStream::PulseAudioOutputStream(
     const std::string& device_id,
     AudioManagerBase* manager,
     AudioManager::LogCallback log_callback)
-    : params_(AudioParameters(params.format(),
-                              params.channel_layout_config(),
-                              params.sample_rate(),
-                              params.frames_per_buffer())),
+    : params_(params),
       device_id_(device_id),
       manager_(manager),
       log_callback_(std::move(log_callback)),
@@ -95,6 +92,22 @@ bool PulseAudioOutputStream::Open() {
   if (!result) {
     SendLogMessage("%s => (ERROR: failed to open PA stream)", __func__);
   }
+
+  // Tag RTC streams (WebRTC voice) with media.role=communication so that
+  // PipeWire/WirePlumber can route them independently from regular playback.
+  if (result && pa_stream_ &&
+      params_.latency_tag() == media::AudioLatency::Type::kRtc) {
+    AutoPulseLock auto_lock(pa_mainloop_);
+    pa_proplist* pl = pa_proplist_new();
+    pa_proplist_sets(pl, PA_PROP_MEDIA_ROLE, "communication");
+    pa_operation* op = pa_stream_proplist_update(
+        pa_stream_, PA_UPDATE_MERGE, pl, nullptr, nullptr);
+    if (op) {
+      pa_operation_unref(op);
+    }
+    pa_proplist_free(pl);
+  }
+
   return result;
 }
 
